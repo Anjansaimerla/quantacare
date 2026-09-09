@@ -1,3 +1,5 @@
+const API_BASE_URL = window.API_BASE_URL || '';
+
 document.addEventListener('DOMContentLoaded', () => {
     // 0. Ensure inputs and output cards start completely empty/awaiting input on fresh page load/refresh
     const clearFormInputs = () => {
@@ -739,7 +741,7 @@ window.highlightDomainPill = highlightDomainPill;
             updateProgress(20, 'Extracting Vision Embeddings via PyTorch CNN...');
 
             try {
-                const response = await fetch('/predict/scan', {
+                const response = await fetch(API_BASE_URL + '/predict/scan', {
                     method: 'POST',
                     body: formData
                 });
@@ -796,7 +798,8 @@ async function runEvaluationPipeline(endpoint, payload) {
     await sleep(250);
 
     try {
-        const response = await fetch(endpoint, {
+        const targetUrl = endpoint.startsWith('http') ? endpoint : (API_BASE_URL + endpoint);
+        const response = await fetch(targetUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
