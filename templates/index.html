@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuantaCare — Nephrology & Multi-Domain Clinical Intelligence System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="/static/css/vintage.css?v=5.0">
+</head>
+<body class="dribbble-dashboard-body">
+
+    <div class="app-layout">
+        <!-- 1. Dribbble Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-logo">
+                    <span class="logo-icon">🧬</span>
+                    <div class="brand-text">
+                        <span class="brand-title">QuantaCare AI</span>
+                        <span class="brand-sub">v2.4 Clinical System</span>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">CLINICAL DASHBOARD</div>
+                <a href="#" class="nav-item active">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-label">Patient Overview</span>
+                </a>
+                <a href="#panel_manual_entry" class="nav-item">
+                    <span class="nav-icon">🩸</span>
+                    <span class="nav-label">Patient Intake</span>
+                </a>
+                <a href="#panel_scan_entry" class="nav-item">
+                    <span class="nav-icon">🩻</span>
+                    <span class="nav-label">Multi-Modal Scan Reader</span>
+                </a>
+                <a href="#pinecone_section" class="nav-item">
+                    <span class="nav-icon">📚</span>
+                    <span class="nav-label">Vector Guidelines</span>
+                </a>
+                <a href="#biomarker_section" class="nav-item">
+                    <span class="nav-icon">⚛️</span>
+                    <span class="nav-label">Biomarker Matrix</span>
+                </a>
+                <a href="#report_section" class="nav-item">
+                    <span class="nav-icon">📋</span>
+                    <span class="nav-label">EHR Summary Ledger</span>
+                </a>
+            </nav>
+
+
+        </aside>
+
+        <!-- 2. Main Content Workspace -->
+        <main class="main-content">
+
+            <!-- Top Navigation Bar -->
+            <header class="top-navbar">
+                <div class="navbar-left">
+                    <div class="search-bar">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="global_search_input" class="search-input" placeholder="Search patient ID, biomarker, or clinical scan..." autocomplete="off">
+                        <div id="global_search_dropdown" class="search-dropdown-menu" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <div class="navbar-right">
+                    <button type="button" class="btn-history-toggle" id="btn_history_toggle">📂 Stored Records (<span id="stored_records_count">0</span>)</button>
+                    <button type="button" class="btn-guide-toggle" id="btn_reset_workspace" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">🔄 Reset Workspace</button>
+                    <button type="button" class="btn-guide-toggle" id="btn_guide_toggle">💡 Clinician Quick Guide</button>
+                    <div class="sys-pill live">
+                        <span class="dot-pulse"></span>
+                        <span>Hybrid QML Engine Active</span>
+                    </div>
+                    <button type="button" class="btn-print-out" id="btn_print_report">🖨️ Export EHR Report</button>
+                </div>
+            </header>
+
+            <!-- Clinician Quick Guide Collapsible Box -->
+            <div class="guide-collapsible-box" id="guide_box" style="display: none;">
+                <div class="guide-box-title">📋 Clinician Workflow Instructions & Diagnostic Protocol</div>
+                <div class="guide-box-grid">
+                    <div class="guide-step">
+                        <div class="guide-step-num">1</div>
+                        <div>Select a <strong>Medical Specialty</strong> pill below or enter manual patient vitals.</div>
+                    </div>
+                    <div class="guide-step">
+                        <div class="guide-step-num">2</div>
+                        <div>Upload a <strong>Medical CT/X-Ray Scan</strong> or report image for automated PyTorch CNN feature extraction.</div>
+                    </div>
+                    <div class="guide-step">
+                        <div class="guide-step-num">3</div>
+                        <div>Review the <strong>SVG Risk Speedometer</strong>, Pinecone Vector Matches, and encrypted EHR Diagnostic Summary.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Top Banner Metric Stat Cards -->
+            <section class="stats-banner-grid">
+                <div class="stat-card">
+                    <div class="stat-icon-wrap icon-blue">🏥</div>
+                    <div class="stat-info">
+                        <div class="stat-label">Active Specialty Domain</div>
+                        <div class="stat-value" id="disp_active_domain_label">Awaiting Intake</div>
+                        <div class="stat-sub">7 Medical Domains Supported</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon-wrap icon-emerald">🩺</div>
+                    <div class="stat-info">
+                        <div class="stat-label">Primary Target Disease</div>
+                        <div class="stat-value" id="disp_stat_disease_name">Awaiting Evaluation</div>
+                        <div class="stat-sub" id="disp_confidence">--% Confidence</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon-wrap icon-purple">⚛️</div>
+                    <div class="stat-info">
+                        <div class="stat-label">Quantum PQC Pipeline</div>
+                        <div class="stat-value">6 Qubits Active</div>
+                        <div class="stat-sub" id="disp_fusion_mode">Awaiting Diagnostic Stream</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon-wrap icon-amber">📚</div>
+                    <div class="stat-info">
+                        <div class="stat-label">Pinecone Vector DB</div>
+                        <div class="stat-value">Connected</div>
+                        <div class="stat-sub" id="disp_image_status">No Scan Ingested</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. 7-Medical Domain Selector Deck -->
+            <section class="domain-selector-section">
+                <div class="section-title-row">
+                    <div class="section-heading">Medical Domain & Specialty Indicator</div>
+                    <div class="section-desc">Medical specialty domain dynamically highlights based on diagnostic scan & disease assessment</div>
+                </div>
+                <div class="specialty-pill-grid">
+                    <div class="specialty-btn" data-domain="cardiology">
+                        <span>🫀</span> Cardiology
+                    </div>
+                    <div class="specialty-btn" data-domain="neurology">
+                        <span>🧠</span> Neurology
+                    </div>
+                    <div class="specialty-btn" data-domain="orthopedics">
+                        <span>🦴</span> Orthopedics
+                    </div>
+                    <div class="specialty-btn" data-domain="pulmonology">
+                        <span>🫁</span> Pulmonology
+                    </div>
+                    <div class="specialty-btn" data-domain="endocrinology">
+                        <span>🩸</span> Endocrinology
+                    </div>
+                    <div class="specialty-btn" data-domain="nephrology">
+                        <span>🩺</span> Nephrology
+                    </div>
+                    <div class="specialty-btn" data-domain="oncology">
+                        <span>🔬</span> Oncology
+                    </div>
+                </div>
+            </section>
+
+            <!-- Progress Tracker -->
+            <div class="progress-card progress-container">
+                <div class="progress-header-row">
+                    <div class="progress-header-title">Diagnostic Pipeline Execution Progress</div>
+                    <div class="progress-status-text" id="disp_step_status">Ready for Patient Evaluation</div>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-bar" id="main_progress_bar"></div>
+                </div>
+            </div>
+
+            <!-- 5. Main 2-Column Dashboard Workspace Grid -->
+            <div class="dashboard-grid">
+
+                <!-- Left Column: Patient Evaluation Intake Workspace -->
+                <div class="grid-column">
+
+                    <!-- Intake Card -->
+                    <div class="modern-card">
+                        <div class="card-title-row">
+                            <h2 class="card-title-text">Patient Intake & Multi-Modal Evaluation</h2>
+                            <span class="card-badge glow-badge">Hybrid Ingestion</span>
+                        </div>
+
+                        <!-- Tab Switcher -->
+                        <div class="tab-switcher">
+                            <button type="button" class="tab-btn active" id="tab_btn_manual">📥 Manual Physiological Vitals</button>
+                            <button type="button" class="tab-btn" id="tab_btn_scan">🩻 Multi-Modal Scan Reader</button>
+                        </div>
+
+                        <!-- Panel A: Manual Form -->
+                        <div id="panel_manual_entry" style="display: block;">
+                            <div class="preset-pills">
+                                <span class="preset-label" style="font-size: 0.78rem; font-weight: 700; color: #64748b; margin-right: 4px; align-self: center;">Quick Cohorts:</span>
+                                <button type="button" class="preset-pill-btn" id="preset_normal">Normal Cohort</button>
+                                <button type="button" class="preset-pill-btn" id="preset_moderate">Moderate Risk</button>
+                                <button type="button" class="preset-pill-btn" id="preset_high">High Risk Cohort</button>
+                            </div>
+
+                            <form id="form_manual_vitals">
+                                <div class="vitals-input-grid">
+                                    <div class="form-group">
+                                        <label class="form-label" for="val_age">Patient Age</label>
+                                        <div class="input-wrap">
+                                            <input type="number" id="val_age" class="styled-input" placeholder="e.g. 60" min="1" max="120" step="1">
+                                            <span class="input-suffix">yrs</span>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="val_sys_bp">Systolic BP</label>
+                                        <div class="input-wrap">
+                                            <input type="number" id="val_sys_bp" class="styled-input" placeholder="e.g. 120" min="60" max="260" step="1">
+                                            <span class="input-suffix">mmHg</span>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="val_dia_bp">Diastolic BP</label>
+                                        <div class="input-wrap">
+                                            <input type="number" id="val_dia_bp" class="styled-input" placeholder="e.g. 80" min="40" max="150" step="1">
+                                            <span class="input-suffix">mmHg</span>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="val_fbs">Fasting Blood Glucose</label>
+                                        <div class="input-wrap">
+                                            <input type="number" id="val_fbs" class="styled-input" placeholder="e.g. 100" min="50" max="500" step="1">
+                                            <span class="input-suffix">mg/dL</span>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="val_chol">Serum Cholesterol</label>
+                                        <div class="input-wrap">
+                                            <input type="number" id="val_chol" class="styled-input" placeholder="e.g. 200" min="100" max="600" step="1">
+                                            <span class="input-suffix">mg/dL</span>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="val_bmi">Body Mass Index (BMI)</label>
+                                        <div class="input-wrap">
+                                            <input type="number" id="val_bmi" class="styled-input" placeholder="e.g. 24.5" min="10" max="60" step="0.1">
+                                            <span class="input-suffix">kg/m²</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="meta-inputs">
+                                    <div class="form-group">
+                                        <label class="form-label" for="val_patient_id">Patient ID / EHR Tag <span style="color: #dc2626; font-weight: 800;">* (Mandatory)</span></label>
+                                        <input type="text" id="val_patient_id" class="styled-input" placeholder="e.g. PATIENT-NEPH-4091" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="val_notes">Clinician Observations</label>
+                                        <input type="text" id="val_notes" class="styled-input" placeholder="e.g. Glomerular Filtration Rate check requested">
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn-primary-action" id="btn_run_eval">
+                                    <span>⚡ Run Quantum Multi-Modal Evaluation</span>
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Panel B: Scan Reader Drag and Drop -->
+                        <div id="panel_scan_entry" style="display: none;">
+                            <div class="form-group" style="margin-bottom: 16px; text-align: left;">
+                                <label class="form-label" for="scan_patient_id">Patient ID / EHR Tag <span style="color: #dc2626; font-weight: 800;">* (Mandatory)</span></label>
+                                <input type="text" id="scan_patient_id" class="styled-input" placeholder="e.g. PATIENT-SCAN-9021" required>
+                            </div>
+
+                            <!-- Mandatory 6 Vitals Input Grid for Scan Ingestion -->
+                            <div class="vitals-input-grid" style="margin-bottom: 16px;">
+                                <div class="form-group">
+                                    <label class="form-label" for="scan_age">Patient Age <span style="color: #dc2626; font-weight: 800;">* (Mandatory)</span></label>
+                                    <div class="input-wrap">
+                                        <input type="number" id="scan_age" class="styled-input" placeholder="e.g. 60" min="1" max="120" step="1" required>
+                                        <span class="input-suffix">yrs</span>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="scan_sys_bp">Systolic BP <span style="color: #dc2626; font-weight: 800;">* (Mandatory)</span></label>
+                                    <div class="input-wrap">
+                                        <input type="number" id="scan_sys_bp" class="styled-input" placeholder="e.g. 120" min="60" max="260" step="1" required>
+                                        <span class="input-suffix">mmHg</span>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="scan_dia_bp">Diastolic BP <span style="color: #dc2626; font-weight: 800;">* (Mandatory)</span></label>
+                                    <div class="input-wrap">
+                                        <input type="number" id="scan_dia_bp" class="styled-input" placeholder="e.g. 80" min="40" max="150" step="1" required>
+                                        <span class="input-suffix">mmHg</span>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="scan_fbs">Fasting Blood Glucose <span style="color: #dc2626; font-weight: 800;">* (Mandatory)</span></label>
+                                    <div class="input-wrap">
+                                        <input type="number" id="scan_fbs" class="styled-input" placeholder="e.g. 100" min="50" max="500" step="1" required>
+                                        <span class="input-suffix">mg/dL</span>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="scan_chol">Serum Cholesterol <span style="color: #dc2626; font-weight: 800;">* (Mandatory)</span></label>
+                                    <div class="input-wrap">
+                                        <input type="number" id="scan_chol" class="styled-input" placeholder="e.g. 200" min="100" max="600" step="1" required>
+                                        <span class="input-suffix">mg/dL</span>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="scan_bmi">BMI <span style="color: #dc2626; font-weight: 800;">* (Mandatory)</span></label>
+                                    <div class="input-wrap">
+                                        <input type="number" id="scan_bmi" class="styled-input" placeholder="e.g. 24.5" min="10" max="60" step="0.1" required>
+                                        <span class="input-suffix">kg/m²</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="dropzone-box" id="ocr_drop_zone">
+                                <div class="drop-icon">🩻</div>
+                                <div class="drop-title">Drag & Drop Medical Scan or Lab Report</div>
+                                <div class="drop-desc">Supports CT Scans, MRIs, X-Rays, ECGs, and Lab PDF/Image Reports (PNG, JPG, WEBP)</div>
+                                <label class="btn-browse" for="scan_file_input">Browse Clinical Image Files</label>
+                                <input type="file" id="scan_file_input" accept="image/*,.pdf" style="display: none;">
+
+                                <div class="preview-box" id="preview_box" style="display: none;">
+                                    <img id="img_preview_thumb" class="preview-img" src="" alt="Scan Thumbnail">
+                                    <div class="preview-info">
+                                        <div class="preview-info-name" id="preview_filename">scan_image.png</div>
+                                        <div class="preview-info-size" id="preview_filesize">142 KB</div>
+                                        <div class="preview-info-tag">✓ PyTorch CNN Encoder Ready</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="button" class="btn-primary-action" id="btn_upload_scan" style="margin-top: 20px;">
+                                <span>🔍 Extract Visual Embeddings & Scan</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Biomarker Status Matrix Card -->
+                    <div class="modern-card" id="biomarker_section">
+                        <div class="card-title-row">
+                            <h2 class="card-title-text">Physiological Biomarker Status Matrix</h2>
+                            <span class="card-badge">VQC 6-Qubit Spectrum</span>
+                        </div>
+                        <div class="biomarker-grid" id="qubit_telemetry_container">
+                            <div class="biomarker-card">
+                                <div class="biomarker-title">Age</div>
+                                <div class="biomarker-val" style="color: var(--text-muted);">--</div>
+                                <div style="color: var(--text-muted); font-size: 0.7rem; margin-top: 2px;">VQC Index: --%</div>
+                            </div>
+                            <div class="biomarker-card">
+                                <div class="biomarker-title">Systolic BP</div>
+                                <div class="biomarker-val" style="color: var(--text-muted);">--</div>
+                                <div style="color: var(--text-muted); font-size: 0.7rem; margin-top: 2px;">VQC Index: --%</div>
+                            </div>
+                            <div class="biomarker-card">
+                                <div class="biomarker-title">Diastolic BP</div>
+                                <div class="biomarker-val" style="color: var(--text-muted);">--</div>
+                                <div style="color: var(--text-muted); font-size: 0.7rem; margin-top: 2px;">VQC Index: --%</div>
+                            </div>
+                            <div class="biomarker-card">
+                                <div class="biomarker-title">Glucose</div>
+                                <div class="biomarker-val" style="color: var(--text-muted);">--</div>
+                                <div style="color: var(--text-muted); font-size: 0.7rem; margin-top: 2px;">VQC Index: --%</div>
+                            </div>
+                            <div class="biomarker-card">
+                                <div class="biomarker-title">Cholesterol</div>
+                                <div class="biomarker-val" style="color: var(--text-muted);">--</div>
+                                <div style="color: var(--text-muted); font-size: 0.7rem; margin-top: 2px;">VQC Index: --%</div>
+                            </div>
+                            <div class="biomarker-card">
+                                <div class="biomarker-title">BMI</div>
+                                <div class="biomarker-val" style="color: var(--text-muted);">--</div>
+                                <div style="color: var(--text-muted); font-size: 0.7rem; margin-top: 2px;">VQC Index: --%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pinecone Evidence-Based Guidelines -->
+                    <div class="modern-card" id="pinecone_section">
+                        <div class="card-title-row">
+                            <h2 class="card-title-text">Pinecone Evidence-Based Guidelines</h2>
+                            <span class="card-badge">Cosine Vector Match</span>
+                        </div>
+                        <div class="cases-gallery" id="pinecone_matches_container">
+                            <div class="cases-placeholder">Awaiting patient evaluation to retrieve matching evidence-based clinical guidelines.</div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Right Column: Diagnostic Risk Meter, Analytics & Encrypted EHR Report -->
+                <div class="grid-column">
+
+                    <!-- Diagnostic Risk Meter Card -->
+                    <div class="modern-card">
+                        <div class="card-title-row">
+                            <h2 class="card-title-text">Clinical Diagnostic Risk Assessment</h2>
+                            <span class="card-badge glow-badge">PennyLane QML</span>
+                        </div>
+
+                        <div class="target-disease-card">
+                            <div class="target-label">Diagnosed Specialty Target</div>
+                            <div class="target-title" id="disp_disease_name">Awaiting Clinical Evaluation</div>
+                            <div class="target-desc" id="disp_condition_desc">Please enter patient vitals or upload a diagnostic scan to run quantum evaluation.</div>
+                        </div>
+
+                        <!-- SVG Speedometer Arc -->
+                        <div class="gauge-meter-wrapper">
+                            <div class="gauge-wrap">
+                                <svg class="gauge-svg-element" viewBox="0 0 100 55">
+                                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#e2e8f0" stroke-width="8" stroke-linecap="round"/>
+                                    <path id="svg_risk_arc" d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="url(#riskGradient)" stroke-width="8" stroke-dasharray="125.66" stroke-dashoffset="125.66" stroke-linecap="round" style="transition: stroke-dashoffset 1s ease;"/>
+                                    <defs>
+                                        <linearGradient id="riskGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                            <stop offset="0%" stop-color="#059669" />
+                                            <stop offset="50%" stop-color="#d97706" />
+                                            <stop offset="100%" stop-color="#dc2626" />
+                                        </linearGradient>
+                                    </defs>
+                                </svg>
+                                <div class="gauge-center-content">
+                                    <div class="gauge-num-big" id="disp_risk_score">--%</div>
+                                    <div class="gauge-num-label">Calculated Risk Score</div>
+                                </div>
+                            </div>
+
+                            <div style="text-align: center;">
+                                <span class="risk-pill-badge pill-neutral" id="wax_seal_badge">AWAITING INPUT</span>
+                            </div>
+
+                            <div class="factors-wrap" id="disp_risk_factors_container">
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">ℹ️ No risk factors evaluated yet</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clinical Analytics & Biomarker Spectrum Graphs -->
+                    <div class="modern-card analytics-card" id="analytics_section">
+                        <div class="card-title-row">
+                            <h2 class="card-title-text">Clinical Analytics & Biomarker Spectrum</h2>
+                            <span class="card-badge glow-badge">Interactive Chart Engine</span>
+                        </div>
+                        <div class="analytics-charts-grid">
+                            <div class="chart-box">
+                                <div class="chart-header">
+                                    <span class="chart-title">📈 Patient Vitals Spectrum vs Clinical Baseline</span>
+                                    <span class="chart-sub">Normalized Min-Max Scale</span>
+                                </div>
+                                <div class="canvas-wrap">
+                                    <canvas id="vitals_line_chart"></canvas>
+                                </div>
+                            </div>
+                            <div class="chart-box">
+                                <div class="chart-header">
+                                    <span class="chart-title">🕸️ Quantum 6-Qubit Radar Telemetry</span>
+                                    <span class="chart-sub">Vector Parameter Balance</span>
+                                </div>
+                                <div class="canvas-wrap">
+                                    <canvas id="biomarker_radar_chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- EHR Diagnostic Report Box -->
+                    <div class="modern-card" id="report_section">
+                        <div class="card-title-row">
+                            <h2 class="card-title-text">Encrypted EHR Clinical Summary Report</h2>
+                            <button type="button" class="btn-print-out" id="btn_print_report_sec">🖨️ Print</button>
+                        </div>
+                        <div class="report-box" id="report_container">
+================================================================================
+QUANTACARE CLINICAL AI DIAGNOSTIC ASSESSMENT LEDGER
+================================================================================
+Status: Awaiting Patient Intake & Diagnostic Evaluation
+--------------------------------------------------------------------------------
+No active patient record loaded. Please enter physiological vitals or upload 
+a diagnostic image scan to initiate quantum-assisted evaluation.
+================================================================================
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Footer -->
+            <footer class="app-foot">
+                QuantaCare Clinical AI Platform • Dribbble Nephrology Management System • 7 Medical Specialties Supported • Powered by PennyLane QML & PyTorch Vision
+            </footer>
+
+        </main>
+    </div>
+
+    <!-- Stored Patient Records Drawer Modal -->
+    <div class="modal-overlay" id="history_modal" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>📂 Stored Patient Diagnostic Records Ledger</h3>
+                <button type="button" class="btn-modal-close" id="btn_close_history">✖</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-search-row">
+                    <input type="text" id="history_search_input" class="search-input" placeholder="Search saved records by Patient ID, Domain, or Condition...">
+                    <button type="button" class="btn-clear-history" id="btn_clear_history">🗑️ Clear Ledger</button>
+                </div>
+                <div class="history-list" id="history_list_container">
+                    <!-- Populated dynamically via localStorage in app.js -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js?v=5.7"></script>
+</body>
+</html>

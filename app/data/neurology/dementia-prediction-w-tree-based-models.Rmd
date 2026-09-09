@@ -1,0 +1,448 @@
+---
+title: "Dementia Prediction with Tree-based Models"
+author: "Ruslan Klymentiev"
+date: "created: 2018-04-08 | updated: `r Sys.Date()`" 
+output:
+  html_document:
+    theme: cerulean
+    toc: yes
+    code_folding: hide
+---
+
+## What is Dementia? 
+
+<center>![](https://cdn.psychologytoday.com/sites/default/files/styles/image-article_inline_full/public/field_blog_entry_images/2017-12/dementia_istock_000029744938_large.jpg?itok=vuDDc9vT)</center>
+
+> **Dementia** is a general term for a decline in mental ability severe enough to interfere with daily life. Memory loss is an example. Dementia is not a specific disease. It's an overall term that describes a group of symptoms associated with a decline in memory or other thinking skills severe enough to reduce a person's ability to perform everyday activities. 
+>
+> ***Diagnosis of dementia***
+>
+> There is no one test to determine if someone has dementia. Doctors diagnose Alzheimer's and other types of dementia based on a careful medical history, a physical examination, laboratory tests, and the characteristic changes in thinking, day-to-day function and behavior associated with each type. Doctors can determine that a person has dementia with a high level of certainty. But it's harder to determine the exact type of dementia because the symptoms and brain changes of different dementias can overlap. In some cases, a doctor may diagnose "dementia" and not specify a type. If this occurs it may be necessary to see a specialist such as a neurologist or gero-psychologist.
+
+*Information was taken from [The Alzheimer's Association website](https://www.alz.org/alzheimers_disease_what_is_alzheimers.asp).*
+
+## Setting up the environment and data import
+```{r import, message=FALSE, warning=FALSE, paged.print=TRUE}
+library(ggplot2)
+library(dplyr)
+library(Hmisc)
+library(PerformanceAnalytics)
+library(cowplot)
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(e1071)
+library(randomForest)
+library(gbm)
+library(Metrics)
+library(vtreat)
+library(AUC)
+set.seed(123)
+Data <- read.csv("../input/oasis_longitudinal.csv")
+print(sample_n(Data, 5))
+```
+
+## Understanding the data
+> **Summary: ** This set consists of a longitudinal collection of 150 subjects aged 60 to 96. Each subject was scanned on two or more visits, separated by at least one year for a total of 373 imaging sessions. For each subject, 3 or 4 individual T1-weighted MRI scans obtained in single scan sessions are included. The subjects are all right-handed and include both men and women. 72 of the subjects were characterized as nondemented throughout the study. 64 of the included subjects were characterized as demented at the time of their initial visits and remained so for subsequent scans, including 51 individuals with mild to moderate Alzheimer’s disease. Another 14 subjects were characterized as nondemented at the time of their initial visit and were subsequently characterized as demented at a later visit.
+
+### What do variables stand for
+
+* **Subject.ID**
+* **MRI.ID**
+* **Group** *(Converted / Demented / Nondemented)*
+* **Visit** - Number of visit
+* **MR.Delay** ???
+
+#### Demographics Info
+* **M.F** - Gender
+* **Hand** - Handedness *(actually all subjects were right-handed so I will drop this column)*
+* **Age**
+* **EDUC** - Years of education
+* **SES**  - Socioeconomic status as assessed by the Hollingshead Index of Social Position and classified into categories from *1 (highest status)* to *5 (lowest status)*
+
+#### Clinical Info
+* **MMSE** - Mini-Mental State Examination score *(range is from 0 = worst to 30 = best) *
+* **CDR** - Clinical Dementia Rating *(0 = no dementia, 0.5 = very mild AD, 1 = mild AD, 2 = moderate AD)*
+
+#### Derived anatomic volumes
+* **eTIV** - Estimated total intracranial volume, mm3
+* **nWBV** - Normalized whole-brain volume, expressed as a percent of all voxels in the atlas-masked image that are labeled as gray or white matter by the automated tissue segmentation process
+* **ASF** - Atlas scaling factor (unitless). Computed scaling factor that transforms native-space brain and skull to the atlas target (i.e., the determinant of the transform matrix)
+
+### Mini–Mental State Examination (MMSE)
+
+> The Mini–Mental State Examination (MMSE) or Folstein test is a 30-point questionnaire that is used extensively in clinical and research settings to measure cognitive impairment. It is commonly used in medicine and allied health to screen for dementia. It is also used to estimate the severity and progression of cognitive impairment and to follow the course of cognitive changes in an individual over time; thus making it an effective way to document an individual's response to treatment. The MMSE's purpose has been not, on its own, to provide a diagnosis for any particular nosological entity.
+> 
+> **Interpretations**
+> 
+> Any score greater than or equal to 24 points (out of 30) indicates a normal cognition. Below this, scores can indicate severe (≤9 points), moderate (10–18 points) or mild (19–23 points) cognitive impairment. The raw score may also need to be corrected for educational attainment and age. That is, a maximal score of 30 points can never rule out dementia. Low to very low scores correlate closely with the presence of dementia, although other mental disorders can also lead to abnormal findings on MMSE testing. The presence of purely physical problems can also interfere with interpretation if not properly noted; for example, a patient may be physically unable to hear or read instructions properly, or may have a motor deficit that affects writing and drawing skills.
+
+*Information was taken from [Wikipedia page](https://en.wikipedia.org/wiki/Mini%E2%80%93Mental_State_Examination).*
+
+### Clinical Dementia Rating (CDR)
+
+> The CDR™ in one aspect is a 5-point scale used to characterize six domains of cognitive and functional performance applicable to Alzheimer disease and related dementias: Memory, Orientation, Judgment & Problem Solving, Community Affairs, Home & Hobbies, and Personal Care. The necessary information to make each rating is obtained through a semi-structured interview of the patient and a reliable informant or collateral source (e.g., family member) referred to as the CDR™ Assessment Protocol.
+> 
+> The CDR™ Scoring Table provides descriptive anchors that guide the clinician in making appropriate ratings based on interview data and clinical judgment. In addition to ratings for each domain, an overall CDR™ score may be calculated through the use of an CDR™ Scoring Algorithm. This score is useful for characterizing and tracking a patient's level of impairment/dementia:
+> 
+> * 0 = Normal
+> * 0.5 = Very Mild Dementia
+> * 1 = Mild Dementia
+> * 2 = Moderate Dementia
+> * 3 = Severe Dementia
+
+*Information was taken from [The Charles F. and Joanne Knight Alzheimer's Disease Research Center website](http://alzheimer.wustl.edu/cdr/cdr.htm). There you can also find an [interpratation table of results](http://knightadrc.wustl.edu/cdr/PDFs/CDR_Table.pdf).*
+
+### Estimated total intracranial volume (eTIV)
+
+> The ICV measure, sometimes referred to as total intracranial volume (TIV), refers to the estimated volume of the cranial cavity as outlined by the supratentorial dura matter or cerebral contour when dura is not clearly detectable. ICV is often used in studies involved with analysis of the cerebral structure under different imaging modalities, such as Magnetic Resonance (MR), MR and Diffusion Tensor Imaging (DTI), MR and Single-photon Emission Computed Tomography (SPECT), Ultrasound and Computed Tomography (CT). ICV consistency during aging makes it a reliable tool for correction of head size variation across subjects in studies that rely on morphological features of the brain. ICV, along with age and gender are reported as covariates to adjust for regression analyses in investigating progressive neurodegenerative brain disorders, such as Alzheimer's disease, aging and cognitive impairment. ICV has also been utilized as an independent voxel based morphometric feature to evaluate age-related changes in the structure of premorbid brai, determine characterizing atrophy patterns in subjects with mild cognitive impairment (MCI) and Alzheimer's disease (AD), delineate structural abnormalities in the white matter (WM) in schizophrenia, epilepsy, and gauge cognitive efficacy.
+
+*Information was taken from [PubMed Central® website](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4423585/).*
+
+```{r describe, message=FALSE, warning=FALSE, paged.print=TRUE}
+#get information about each variable of dataset
+describe(Data)
+chart.Correlation(select(Data, Age, EDUC, SES, MMSE, eTIV, nWBV, ASF), histogram = TRUE, main = "Correlation between Variables")
+```
+
+### Data manipulation
+
+Previously we could see that some columns have missing values, so next what I am going to do is to replace them with **median** for that column.
+```{r data-manipulation, message=FALSE, warning=FALSE}
+Data <- select(Data, -Hand) #drop Hand column since all objects were right-handed
+Data$SES[is.na(Data$SES)] <- median(Data$SES, na.rm = TRUE)
+Data$MMSE[is.na(Data$MMSE)] <- median(Data$MMSE, na.rm = TRUE)
+
+#creating new column with Dementia diagnosis
+#Data$Dementia <- 0
+#Data$Dementia[Data$CDR == 0] <- 0
+#Data$Dementia[Data$CDR > 0] <- 1
+#Data$Dementia <- as.factor(Data$Dementia)
+```
+
+## Exploratory Data Analysis
+
+Class of **CDR** (0/0.5/1/2) will be our predicted value. Let's see how it depends on other variables.
+<center>
+```{r distributions, message=FALSE, warning=FALSE, paged.print=FALSE}
+Data %>%
+    select(Subject.ID, Age, CDR, M.F) %>%
+    group_by(Subject.ID, CDR, M.F) %>%
+    summarise_all(funs(min)) %>%
+    as.data.frame() %>%
+    mutate(CDR = as.factor(CDR)) %>%
+ggplot(aes(x = CDR, y = Age, fill = M.F)) + 
+    geom_violin() +
+    labs(title = "1. Distribution of Age by CDR rate",
+         fill = "Sex") +
+    theme_light()
+
+x <- Data %>%
+    select(EDUC, CDR, M.F) %>%
+    mutate(CDR = as.factor(CDR)) %>%
+ggplot(aes(x = CDR, y = EDUC)) + 
+    geom_jitter(aes(col = CDR), alpha = 0.6) +
+    labs(title = "x") +
+    theme_light()
+
+y <- Data %>%
+    select(SES, CDR, M.F) %>%
+    mutate(CDR = as.factor(CDR)) %>%
+ggplot(aes(x = CDR, y = SES)) + 
+    geom_jitter(aes(col = CDR), alpha = 0.6) +
+    labs(title = "x") +
+    theme_light()
+
+p <- plot_grid(x, y) 
+title <- ggdraw() + draw_label("2. Distribution of Education and Social Economic Status", fontface='bold')
+plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+
+x <- Data %>%
+    select(MMSE, CDR, M.F) %>%
+    mutate(CDR = as.factor(CDR)) %>%
+ggplot(aes(x = CDR, y = MMSE)) + 
+    geom_jitter(aes(col = CDR), alpha = 0.6) +
+    labs(title = "x") +
+    theme_light()
+
+y <- Data %>%
+    select(nWBV, CDR, M.F) %>%
+    mutate(CDR = as.factor(CDR)) %>%
+ggplot(aes(x = CDR, y = nWBV)) + 
+    geom_jitter(aes(col = CDR), alpha = 0.6) +
+    labs(title = "x") +
+    theme_light()
+
+p <- plot_grid(x, y) 
+title <- ggdraw() + draw_label("3. Distribution of MMSE Score and Wole-brain Volume", fontface='bold')
+plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+
+x <- Data %>%
+    select(eTIV, CDR, M.F) %>%
+    mutate(CDR = as.factor(CDR)) %>%
+ggplot(aes(x = CDR, y = eTIV)) + 
+    geom_jitter(aes(col = CDR), alpha = 0.6) +
+    labs(title = "x") +
+    theme_light()
+
+y <- Data %>%
+    select(ASF, CDR, M.F) %>%
+    mutate(CDR = as.factor(CDR)) %>%
+ggplot(aes(x = CDR, y = ASF)) + 
+    geom_jitter(aes(col = CDR), alpha = 0.6) +
+    labs(title = "x") +
+    theme_light()
+
+p <- plot_grid(x, y) 
+title <- ggdraw() + draw_label("4. Distribution of Total Intracranial Volume and Atlas Scaling Factor", fontface='bold')
+plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1))
+```
+</center>
+
+So what we can actually see from these plots?
+
+* **Plot 1**: no obvious connection between *Age/Sex* and *Demetia Diagnosis*.
+
+* **Plot 2**: still no obvious connection between *Education Level/Social Economic Status* and *Demetia Diagnosis*.
+
+* **Plot 3**: while the *MMS examination results* of objects not diagnosed with Dementia concentrate near 27-30 point rate, *MMSE results* of objects diagnosed with Dementia seems to de more spreaded. We can see that objects had the highest MMSE score but still have Clinical Dementia Rating of 0.5 or 1. No obvious connection between *Estimated total intracranial volume* and *Demetia Diagnosis*.
+
+* **Plot 4**: *Normalized whole-brain volume* seems to be more spreded for objects with CDR = 0 and narrows as CDR grows up. No obvious connection between *Atlas scaling factor* and *Demetia Diagnosis*.
+
+## Tree-based Models
+
+<center><img src="https://cdn-images-1.medium.com/max/751/1*dU7xkQ9h-lX4pwDwJMFCng.png" width="300"></center>
+
+>Tree based learning algorithms are considered to be one of the best and mostly used supervised learning methods. Tree based methods empower predictive models with high accuracy, stability and ease of interpretation. Unlike linear models, they map non-linear relationships quite well. They are adaptable at solving any kind of problem at hand (classification or regression). Methods like decision trees, random forest, gradient boosting are being popularly used in all kinds of data science problems.
+
+### Preparation and splitting the data
+
+```{r train/test-split, echo=TRUE}
+#prepairing data
+Data_new <- Data %>%
+  select(M.F, Age, EDUC, SES, MMSE, eTIV, nWBV, ASF, CDR) %>%
+  mutate(CDR = as.factor(CDR))
+
+n_train <- round(0.8 * nrow(Data_new)) #80% of length of main data set as integer
+train_indices <- sample(1:nrow(Data_new), n_train) #creating a vector with random indices
+train <- Data_new[train_indices, ] #generating train data set (with ideces = train_indices)
+test <- Data_new[-train_indices, ] #generating test data set
+
+formula <- CDR ~ M.F + Age + EDUC + SES + MMSE + eTIV + nWBV
+k <- 5
+splitPlan <- kWayCrossValidation(nrow(Data_new), k, NULL, NULL) #generating 5-folds cross validation plan
+```
+
+The formula for model training is: **CDR ~ M.F + Age + EDUC + SES + MMSE + eTIV + nWBV**. Have dropped Atlas Scaling Factor since ASF and eTIV are linear dependent so it would result in [multicollinearity](https://en.wikipedia.org/wiki/Multicollinearity).
+
+### Decision Tree Model
+
+>Decision tree is a type of supervised learning algorithm (having a pre-defined target variable) that is mostly used in classification problems. It works for both categorical and continuous input and output variables. In this technique, we split the population or sample into two or more homogeneous sets (or sub-populations) based on most significant splitter / differentiator in input variables.
+
+Let's train a simple decision tree model and print output for that model to find the best CP value using cross validation. The complexity parameter (CP) is used to control the size of the decision tree and to select the optimal tree size.
+
+```{r decision-tree-model, message=FALSE, warning=FALSE}
+opt_cp <- 0 #list with optimal CP parameters
+for(i in 1:k) {
+  split <- splitPlan[[i]]
+  #training simple decision tree model
+  model_cv <- rpart(formula = formula,
+               data = Data_new[split$train,],
+               method = "class")
+  #get the best CP value
+  opt_cp[i] <- model_cv$cptable[which.min(model_cv$cptable[,"xerror"]),"CP"]
+}
+
+#training the model with optimal CP parameter on whole data set
+model_dt <- rpart(formula = formula,
+               data = Data_new,
+               method = "class",
+               cp = mean(opt_cp))
+
+#plot decision tree model
+prp(x = model_dt, type=1, extra = 102)
+
+#testing the model
+prediction_dt <- predict(object = model_cv,
+                newdata = Data_new,
+                type = "class")
+
+#print confusion matrix
+confusionMatrix(data = prediction_dt,
+                reference = Data_new$CDR)
+
+AUC_dt <- Metrics::auc(actual = Data_new$CDR, predicted = prediction_dt) #calculating AUC
+```
+Let's make sure that we did not overfit the model and test model using cross-validation
+```{r decision-tree-model-2, message=FALSE, warning=FALSE}
+prediction_dt_cv <- 0
+for(i in 1:k) {
+  split <- splitPlan[[i]]
+  #training decision tree model
+  model_cv <- rpart(formula = formula,
+               data = Data_new[split$train,],
+               method = "class",
+               cp = mean(opt_cp))
+  #testing the model
+  prediction_dt_cv[split$app] <- predict(object = model_cv,
+                newdata = Data_new[split$app,],
+                type = "class")
+}
+#create function which returns vector in original scale
+conv_to_orig <- function(x){
+  x[x == 1] <- 0
+  x[x == 2] <- 0.5
+  x[x == 3] <- 1
+  x[x == 4] <- 2
+  x <- as.factor(x)
+  return(x)
+}
+
+prediction_dt_cv <- conv_to_orig(prediction_dt_cv)
+
+confusionMatrix(data = prediction_dt_cv,
+                reference = Data_new$CDR)
+
+AUC_dt_cv <- Metrics::auc(actual = Data_new$CDR, predicted = prediction_dt_cv)
+
+print(paste0("AUC of the full model's predictions = ", round(AUC_dt, 3)))
+print(paste0("AUC of the cross-validation predictions = ", round(AUC_dt_cv, 3)))
+```
+AUC is almost the same, so we did not overfit the model
+
+### Random Forest
+>Random Forest is a versatile machine learning method capable of performing both regression and classification tasks. It also undertakes dimensional reduction methods, treats missing values, outlier values and other essential steps of data exploration, and does a fairly good job. It is a type of ensemble learning method, where a group of weak models combine to form a powerful model.
+>
+>In Random Forest, we grow multiple trees as opposed to a single tree in CART model. To classify a new object based on attributes, each tree gives a classification and we say the tree “votes” for that class. The forest chooses the classification having the most votes (over all the trees in the forest) and in case of regression, it takes the average of outputs by different trees.
+
+```{r random-forest model, message=FALSE, warning=FALSE}
+#training with random forest model
+model_rf0 <- randomForest(formula = formula,
+                         data = train,
+                         importance=TRUE)
+                             
+# Print the model output                             
+print(model_rf0)
+plot(model_rf0, main = "Model Error by Number of Trees")
+legend(x = "right", 
+       legend = colnames(model_rf0$err.rate),
+       fill = 1:ncol(model_rf0$err.rate))
+varImpPlot(model_rf0, main = "Importance of Variables") #plot variance importance
+```
+
+Now, I will find optimal hyperparameters to tune the model.
+
+* *mtry*: Number of variables randomly sampled as candidates at each split.
+
+* *nodesize*: It refers to how many observations we want in the terminal nodes. This parameter is directly related to tree depth. Higher the number, lower the tree depth. With lower tree depth, the tree might even fail to recognize useful signals from the data.
+
+* *sampsize*: Size(s) of sample to draw. For classification, if sampsize is a vector of the length the number of strata, then sampling is stratified by strata, and the elements of sampsize indicate the numbers to be drawn from the strata.
+
+```{r random-forest model2, message=FALSE, warning=FALSE}
+#establish a list of possible values for mtry, nodesize and sampsize
+mtry <- seq(4, ncol(train), 2)
+nodesize <- seq(3, 8, 2)
+sampsize <- as.integer(nrow(train) * c(0.7, 0.8, 0.9))
+
+hyper_grid <- expand.grid(mtry = mtry, nodesize = nodesize, sampsize = sampsize) #create a data frame containing all combinations 
+
+oob_err <- c() # Create an empty vector to store OOB error values
+
+#write a loop over the rows of hyper_grid to train the grid of models
+for (i in 1:nrow(hyper_grid)) {
+
+    #train a Random Forest model
+    model_rf <- randomForest(formula = formula,
+                          data = train,
+                          mtry = hyper_grid$mtry[i],
+                          nodesize = hyper_grid$nodesize[i],
+                          sampsize = hyper_grid$sampsize[i])
+                          
+    #store OOB error for the model                      
+    oob_err[i] <- model_rf$err.rate[nrow(model_rf$err.rate), "OOB"]
+}
+
+#identify optimal set of hyperparmeters based on OOB error
+opt_i <- which.min(oob_err)
+```
+We got following hyperparameters:
+
+* *mtry* = `r hyper_grid$mtry[opt_i]`
+
+* *nodesize* = `r hyper_grid$nodesize[opt_i]`
+
+* *sampsize* = `r hyper_grid$sampsize[opt_i]`
+
+Re-train the model with new parameters:
+
+```{r random-forest-model-2, message=FALSE, warning=FALSE}
+#train a final Random Forest model with new parameters
+model_rf_final <- randomForest(formula = formula,
+                               data = train,
+                               mtry = hyper_grid$mtry[opt_i],
+                               nodesize = hyper_grid$nodesize[opt_i],
+                               sampsize = hyper_grid$sampsize[opt_i])
+
+prediction_rf <- predict(object = model_rf_final,
+                         newdata = select(test, -CDR),
+                         type = "class")
+                            
+confusionMatrix(data = prediction_rf, reference = test$CDR) 
+
+AUC_rf <- Metrics::auc(actual = test$CDR, predicted = prediction_rf)
+```
+
+### Gradient Boosting Machine
+
+>Gradient boosting is a machine learning technique for regression and classification problems, which produces a prediction model in the form of an ensemble of weak prediction models, typically decision trees. It builds the model in a stage-wise fashion like other boosting methods do, and it generalizes them by allowing optimization of an arbitrary differentiable loss function.
+
+```{r GMB, message=FALSE, warning=FALSE}
+# Train a 5000-tree GBM model
+model_gbm <- gbm.fit(x = select(train, -CDR),
+                     y = train$CDR,
+                     distribution = "multinomial", 
+                     n.trees = 5000,
+                     shrinkage = 0.01,
+                     nTrain = round(nrow(train) * 0.8),
+                     verbose = FALSE)
+                    
+# Print the model object                    
+print(model_gbm)
+
+# summary() prints variable importance
+summary(model_gbm)
+
+prediction_gbm <- predict.gbm(object = model_gbm, 
+                              newdata = select(test, -CDR),
+                              type = "response",
+                              n.trees = gbm.perf(model_gbm, plot.it = FALSE))
+prediction_gbm <- apply(prediction_gbm, 1, which.max)
+prediction_gbm <- conv_to_orig(prediction_gbm)
+
+confusionMatrix(data = prediction_gbm, reference = test$CDR)
+
+AUC_gbm <- Metrics::auc(actual = test$CDR, predicted = prediction_gbm)
+```
+
+### Comparing the Models 
+
+**What is AUC?**
+
+>AUC is an abbrevation for *area under the curve*. It is used in classification analysis in order to determine which of the used models predicts the classes best. An example of its application are ROC curves. The true positive rates are plotted against false positive rates. The closer AUC for a model comes to 1, the better it is. So models with higher AUCs are preferred over those with lower AUCs.
+
+```{r comparison, message=FALSE, warning=FALSE}
+roc1 = AUC::roc(prediction_dt_cv, Data_new$CDR)
+roc2 = AUC::roc(prediction_gbm, test$CDR)
+roc3 = AUC::roc(prediction_rf, test$CDR)
+plot(roc1, col = 1, lty = 2, main = "ROC")
+plot(roc2, col = 3, lty = 4, add = TRUE)
+plot(roc3, col = 4, lty = 3, add = TRUE)
+
+print(paste0("AUC for Decision Tree Model = ", round(AUC_dt_cv, 2)))
+print(paste0("AUC for Random Forest Model = ", round(AUC_rf, 2)))
+print(paste0("AUC for GBM Model = ", round(AUC_gbm, 2)))
+legend(0.6, 0.3, legend=c("Decision Tree Model", "Random Forest Model", "GBM Model"),
+       col=c(1,3,4), lty=2:4, cex=0.8)
+```
+
+As far as we can see GBM Model gives better results. Accuracy of prediction is about ~70%. We could also see that Clinical Dementia Rating higly depends of result of Mini-Mental State Examination, while Age, Educational Level and Social-Economic Status have not great influence. Although it is important to remember that Dementia and Alzheimer's desease is complex mental issue, so we can not fully rely on ML algorithms to make a diagnosis. But what we can do is consider that subject with specific characteristics is more likely to be be diagnosed with Dementia based on information from other subjects with the same characteristics.

@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+
+# Environment variables
+.env
+.env.*
+
+# IDE & OS
+.DS_Store
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# Heavy raw image datasets
+app/data/oncology/lung_colon_image_set/
+app/data/oncology/archive/
+**/scans/
