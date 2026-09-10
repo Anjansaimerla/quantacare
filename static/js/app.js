@@ -775,13 +775,33 @@ window.highlightDomainPill = highlightDomainPill;
 
             updateProgress(20, 'Extracting Vision Embeddings via PyTorch CNN...');
 
+            let currentProgress = 20;
+            const progressInterval = setInterval(() => {
+                if (currentProgress < 45) {
+                    currentProgress += 5;
+                    updateProgress(currentProgress, 'Extracting Vision Embeddings via PyTorch CNN...');
+                } else if (currentProgress < 75) {
+                    currentProgress += 4;
+                    updateProgress(currentProgress, 'Executing 6-Qubit PennyLane PQC & Quantum Feature Fusion...');
+                } else if (currentProgress < 92) {
+                    currentProgress += 2;
+                    updateProgress(currentProgress, 'Searching Pinecone Clinical Guidelines & Generating Encrypted Report...');
+                }
+            }, 700);
+
             try {
                 const baseUrl = getApiBaseUrl();
                 const targetUrl = baseUrl + '/predict/scan';
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 60000);
+
                 const response = await fetch(targetUrl, {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
+                clearInterval(progressInterval);
 
                 if (!response.ok) {
                     if (response.status === 404) {
@@ -794,7 +814,12 @@ window.highlightDomainPill = highlightDomainPill;
                 updateProgress(100, 'Diagnostic Evaluation Complete');
                 renderEvaluationResults(data);
             } catch (err) {
-                alert(`Scan Processing Error: ${err.message}`);
+                clearInterval(progressInterval);
+                const isAbort = err.name === 'AbortError';
+                const msg = isAbort 
+                    ? `Scan Processing Timed Out (60s).\n\nIf your Render backend is waking up from sleep, please wait 20 seconds and click Upload again.`
+                    : `Scan Processing Error: ${err.message}`;
+                alert(msg);
                 updateProgress(0, 'Ready for Patient Evaluation');
             }
         });
@@ -832,19 +857,32 @@ async function runEvaluationPipeline(endpoint, payload) {
     if (btnSubmit) btnSubmit.disabled = true;
 
     updateProgress(20, 'Normalizing Biomarkers & Executing Rx/Ry Encodings...');
-    await sleep(250);
 
-    updateProgress(50, 'Executing 6-Qubit Quantum PQC & COBYLA Convergence...');
-    await sleep(250);
+    let currentProgress = 20;
+    const progressInterval = setInterval(() => {
+        if (currentProgress < 50) {
+            currentProgress += 10;
+            updateProgress(currentProgress, 'Normalizing Biomarkers & Executing Rx/Ry Encodings...');
+        } else if (currentProgress < 85) {
+            currentProgress += 5;
+            updateProgress(currentProgress, 'Executing 6-Qubit Quantum PQC & COBYLA Convergence...');
+        }
+    }, 400);
 
     try {
         const baseUrl = getApiBaseUrl();
         const targetUrl = endpoint.startsWith('http') ? endpoint : (baseUrl + endpoint);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
+
         const response = await fetch(targetUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            signal: controller.signal
         });
+        clearTimeout(timeoutId);
+        clearInterval(progressInterval);
 
         if (!response.ok && response.status === 404) {
             alert(`⚠️ Backend API Connection Error (HTTP 404):\nCould not reach target endpoint at "${targetUrl}".\n\nIf hosted on Vercel, please click ⚙️ in the top navigation bar to set your live Render Backend API URL (e.g. https://quantacare.onrender.com).`);
