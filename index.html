@@ -73,9 +73,10 @@
                     <button type="button" class="btn-history-toggle" id="btn_history_toggle">📂 Stored Records (<span id="stored_records_count">0</span>)</button>
                     <button type="button" class="btn-guide-toggle" id="btn_reset_workspace" style="background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">🔄 Reset Workspace</button>
                     <button type="button" class="btn-guide-toggle" id="btn_guide_toggle">💡 Clinician Quick Guide</button>
-                    <div class="sys-pill live">
+                    <div class="sys-pill live" title="Backend API Target">
                         <span class="dot-pulse"></span>
-                        <span>Hybrid QML Engine Active</span>
+                        <span>API: <strong id="disp_api_url_label">Auto</strong></span>
+                        <button type="button" id="btn_change_api_url" style="background: none; border: none; cursor: pointer; color: #ffffff; font-size: 0.85rem; margin-left: 4px;" title="Set Render Backend API URL">⚙️</button>
                     </div>
                     <button type="button" class="btn-print-out" id="btn_print_report">🖨️ Export EHR Report</button>
                 </div>

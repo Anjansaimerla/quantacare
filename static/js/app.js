@@ -1,6 +1,41 @@
-const API_BASE_URL = window.API_BASE_URL || '';
+const getApiBaseUrl = () => {
+    if (window.API_BASE_URL) return window.API_BASE_URL.replace(/\/$/, '');
+    const saved = localStorage.getItem('QUANTACARE_API_URL');
+    if (saved) return saved.replace(/\/$/, '');
+    if (window.location.hostname.includes('vercel.app')) {
+        return 'https://quantacare.onrender.com';
+    }
+    return '';
+};
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Sync API Base URL label on load
+    const apiLabel = document.getElementById('disp_api_url_label');
+    const btnChangeApi = document.getElementById('btn_change_api_url');
+    const updateApiLabel = () => {
+        const url = getApiBaseUrl();
+        if (apiLabel) {
+            apiLabel.innerText = url ? (url.replace('https://', '').replace('http://', '')) : 'Local (Relative)';
+        }
+    };
+    updateApiLabel();
+
+    if (btnChangeApi) {
+        btnChangeApi.addEventListener('click', () => {
+            const current = getApiBaseUrl() || 'https://quantacare.onrender.com';
+            const updated = prompt('Set Render Backend API URL:\n(e.g. https://quantacare.onrender.com)', current);
+            if (updated !== null) {
+                const cleaned = updated.trim().replace(/\/$/, '');
+                if (cleaned) {
+                    localStorage.setItem('QUANTACARE_API_URL', cleaned);
+                } else {
+                    localStorage.removeItem('QUANTACARE_API_URL');
+                }
+                updateApiLabel();
+                alert(`Backend API URL set to: ${getApiBaseUrl() || 'Same Origin (Local)'}`);
+            }
+        });
+    }
     // 0. Ensure inputs and output cards start completely empty/awaiting input on fresh page load/refresh
     const clearFormInputs = () => {
         ['val_age', 'val_sys_bp', 'val_dia_bp', 'val_fbs', 'val_chol', 'val_bmi', 'val_patient_id', 'val_notes',
@@ -741,12 +776,17 @@ window.highlightDomainPill = highlightDomainPill;
             updateProgress(20, 'Extracting Vision Embeddings via PyTorch CNN...');
 
             try {
-                const response = await fetch(API_BASE_URL + '/predict/scan', {
+                const baseUrl = getApiBaseUrl();
+                const targetUrl = baseUrl + '/predict/scan';
+                const response = await fetch(targetUrl, {
                     method: 'POST',
                     body: formData
                 });
 
                 if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error(`HTTP 404 Not Found at "${targetUrl}".\n\nIf hosted on Vercel, please click ⚙️ in the top header to set your Render Backend API URL (e.g. https://quantacare.onrender.com).`);
+                    }
                     throw new Error(`Server returned HTTP ${response.status}`);
                 }
 
@@ -798,12 +838,20 @@ async function runEvaluationPipeline(endpoint, payload) {
     await sleep(250);
 
     try {
-        const targetUrl = endpoint.startsWith('http') ? endpoint : (API_BASE_URL + endpoint);
+        const baseUrl = getApiBaseUrl();
+        const targetUrl = endpoint.startsWith('http') ? endpoint : (baseUrl + endpoint);
         const response = await fetch(targetUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
+
+        if (!response.ok && response.status === 404) {
+            alert(`⚠️ Backend API Connection Error (HTTP 404):\nCould not reach target endpoint at "${targetUrl}".\n\nIf hosted on Vercel, please click ⚙️ in the top navigation bar to set your live Render Backend API URL (e.g. https://quantacare.onrender.com).`);
+            updateProgress(0, 'Ready for Patient Evaluation');
+            if (btnSubmit) btnSubmit.disabled = false;
+            return;
+        }
 
         if (response.status === 422) {
             const errDetails = await response.json();
