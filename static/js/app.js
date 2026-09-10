@@ -1,11 +1,13 @@
 const getApiBaseUrl = () => {
-    if (window.API_BASE_URL) return window.API_BASE_URL.replace(/\/$/, '');
-    const saved = localStorage.getItem('QUANTACARE_API_URL');
-    if (saved) return saved.replace(/\/$/, '');
-    if (window.location.hostname.includes('vercel.app')) {
-        return 'https://quantacare.onrender.com';
+    let url = window.API_BASE_URL || localStorage.getItem('QUANTACARE_API_URL') || '';
+    if (!url && window.location.hostname.includes('vercel.app')) {
+        url = 'https://quantacare.onrender.com';
     }
-    return '';
+    url = url.trim().replace(/\/$/, '');
+    if (window.location.protocol === 'https:' && url.startsWith('http://')) {
+        url = url.replace('http://', 'https://');
+    }
+    return url;
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -22,17 +24,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnChangeApi) {
         btnChangeApi.addEventListener('click', () => {
-            const current = getApiBaseUrl() || 'https://quantacare.onrender.com';
-            const updated = prompt('Set Render Backend API URL:\n(e.g. https://quantacare.onrender.com)', current);
+            const current = getApiBaseUrl() || 'https://quantacare-production.up.railway.app';
+            const updated = prompt('Set Live Backend API URL (Railway / Render):\n(e.g. https://quantacare-production.up.railway.app)', current);
             if (updated !== null) {
-                const cleaned = updated.trim().replace(/\/$/, '');
+                let cleaned = updated.trim().replace(/\/$/, '');
+                if (window.location.protocol === 'https:' && cleaned.startsWith('http://')) {
+                    cleaned = cleaned.replace('http://', 'https://');
+                }
                 if (cleaned) {
                     localStorage.setItem('QUANTACARE_API_URL', cleaned);
                 } else {
                     localStorage.removeItem('QUANTACARE_API_URL');
                 }
                 updateApiLabel();
-                alert(`Backend API URL set to: ${getApiBaseUrl() || 'Same Origin (Local)'}`);
+                alert(`Backend API URL set to:\n${getApiBaseUrl() || 'Same Origin (Local)'}`);
             }
         });
     }
@@ -816,9 +821,14 @@ window.highlightDomainPill = highlightDomainPill;
             } catch (err) {
                 clearInterval(progressInterval);
                 const isAbort = err.name === 'AbortError';
-                const msg = isAbort 
-                    ? `Scan Processing Timed Out (60s).\n\nIf your Render backend is waking up from sleep, please wait 20 seconds and click Upload again.`
-                    : `Scan Processing Error: ${err.message}`;
+                const isFailedToFetch = err.message.includes('Failed to fetch') || err.name === 'TypeError';
+                const targetUrl = (getApiBaseUrl() || window.location.origin) + '/predict/scan';
+                let msg = `Scan Processing Error: ${err.message}`;
+                if (isAbort) {
+                    msg = `Scan Processing Timed Out (60s).\n\nIf your backend server is waking up from sleep, please wait 20 seconds and click Upload again.`;
+                } else if (isFailedToFetch) {
+                    msg = `Backend Connection Failed (Failed to fetch):\nCould not reach target backend at "${targetUrl}".\n\nPossible Fixes:\n1. Verify your Railway/Render backend URL is active and uses HTTPS.\n2. Click the ⚙️ icon in the top header bar and enter your live Railway Backend URL (e.g. https://quantacare-production.up.railway.app).`;
+                }
                 alert(msg);
                 updateProgress(0, 'Ready for Patient Evaluation');
             }
@@ -915,7 +925,18 @@ async function runEvaluationPipeline(endpoint, payload) {
         updateProgress(100, 'Diagnostic Assessment Successfully Generated');
         renderEvaluationResults(data);
     } catch (err) {
-        alert(`Diagnostic Evaluation Exception: ${err.message}`);
+        clearInterval(progressInterval);
+        const isAbort = err.name === 'AbortError';
+        const isFailedToFetch = err.message.includes('Failed to fetch') || err.name === 'TypeError';
+        const baseUrl = getApiBaseUrl();
+        const targetUrl = endpoint.startsWith('http') ? endpoint : ((baseUrl || window.location.origin) + endpoint);
+        let msg = `Diagnostic Evaluation Exception: ${err.message}`;
+        if (isAbort) {
+            msg = `Evaluation Timed Out (60s).\n\nIf your backend server is waking up from sleep, please wait 20 seconds and click Submit again.`;
+        } else if (isFailedToFetch) {
+            msg = `Backend Connection Failed (Failed to fetch):\nCould not reach target backend at "${targetUrl}".\n\nPossible Fixes:\n1. Verify your Railway/Render backend URL is active and uses HTTPS.\n2. Click the ⚙️ icon in the top header bar and enter your live Railway Backend URL (e.g. https://quantacare-production.up.railway.app).`;
+        }
+        alert(msg);
         updateProgress(0, 'Ready for Patient Evaluation');
     } finally {
         if (btnSubmit) btnSubmit.disabled = false;
