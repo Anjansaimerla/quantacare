@@ -4,6 +4,9 @@ const getApiBaseUrl = () => {
         url = 'https://quantacare.onrender.com';
     }
     url = url.trim().replace(/\/$/, '');
+    if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://' + url;
+    }
     if (window.location.protocol === 'https:' && url.startsWith('http://')) {
         url = url.replace('http://', 'https://');
     }
@@ -28,6 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const updated = prompt('Set Live Backend API URL (Railway / Render):\n(e.g. https://quantacare-production.up.railway.app)', current);
             if (updated !== null) {
                 let cleaned = updated.trim().replace(/\/$/, '');
+                if (cleaned && !cleaned.startsWith('http://') && !cleaned.startsWith('https://')) {
+                    cleaned = 'https://' + cleaned;
+                }
                 if (window.location.protocol === 'https:' && cleaned.startsWith('http://')) {
                     cleaned = cleaned.replace('http://', 'https://');
                 }
