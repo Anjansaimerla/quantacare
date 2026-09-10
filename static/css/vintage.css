@@ -64,11 +64,16 @@ body.dribbble-dashboard-body {
 .app-layout {
     display: flex;
     min-height: 100vh;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
 }
 
 /* --- Sidebar --- */
 aside.sidebar {
-    width: 270px;
+    width: 260px;
+    min-width: 260px;
+    max-width: 260px;
     background: var(--bg-sidebar);
     border-right: 1px solid var(--border-color);
     display: flex;
@@ -79,6 +84,7 @@ aside.sidebar {
     top: 0;
     height: 100vh;
     flex-shrink: 0;
+    z-index: 100;
 }
 
 .sidebar-header {
@@ -205,8 +211,12 @@ aside.sidebar {
 /* --- Main Content Workspace --- */
 main.main-content {
     flex: 1;
-    padding: 28px 36px;
-    max-width: 1380px;
+    min-width: 0;
+    width: calc(100% - 260px);
+    padding: 24px 32px;
+    max-width: 1400px;
+    box-sizing: border-box;
+    margin: 0 auto;
 }
 
 /* Top Navbar */
@@ -448,16 +458,19 @@ header.top-navbar {
 }
 
 .specialty-pill-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: 10px;
+    width: 100%;
 }
 
 .specialty-btn {
+    flex: 1 1 120px;
+    min-width: 110px;
     background: #f8fafc;
     border: 1px solid var(--border-color);
     border-radius: 14px;
-    padding: 12px 10px;
+    padding: 10px 14px;
     color: var(--text-secondary);
     font-weight: 700;
     font-size: 0.84rem;
@@ -469,6 +482,7 @@ header.top-navbar {
     justify-content: center;
     gap: 8px;
     transition: all 0.25s ease;
+    white-space: nowrap;
 }
 
 .specialty-btn:hover {
